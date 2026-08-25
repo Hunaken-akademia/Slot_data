@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07131f">
+  <title>SLOT DATA｜エスパス赤坂見附</title>
+  <meta name="description" content="エスパス日拓 赤坂見附駅前店のスロットデータ分析">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="hero__inner">
+      <p class="eyebrow">SLOT DATA / AKASAKA</p>
+      <h1>エスパス赤坂見附<br><span>3ヶ月データ分析</span></h1>
+      <p class="hero__copy">台番号と当日の機種名を照合。入替前後を混ぜずに、店の傾向を追う。</p>
+      <div class="period" id="period">読み込み中…</div>
+    </div>
+  </header>
+
+  <main>
+    <section class="kpis" id="kpis" aria-label="集計概要"></section>
+
+    <nav class="tabs" aria-label="分析メニュー">
+      <button class="tab active" data-tab="overview">傾向</button>
+      <button class="tab" data-tab="daily">日別</button>
+      <button class="tab" data-tab="machines">機種別</button>
+      <button class="tab" data-tab="numbers">台番号</button>
+      <button class="tab" data-tab="changes">入替</button>
+    </nav>
+
+    <section id="overview" class="panel active">
+      <div class="section-head"><div><p class="eyebrow">PATTERNS</p><h2>曜日・特定日の傾向</h2></div></div>
+      <div class="pattern-grid" id="patterns"></div>
+      <div class="chart-card">
+        <div class="chart-head"><h3>日別総差枚</h3><span>タップで数値表示</span></div>
+        <div class="chart" id="dailyChart"></div>
+      </div>
+      <p class="note">公開された差枚結果の集計であり、設定を断定するものではありません。</p>
+    </section>
+
+    <section id="daily" class="panel">
+      <div class="section-head"><div><p class="eyebrow">DAILY</p><h2>日別データ</h2></div></div>
+      <div class="controls"><input id="dailySearch" type="search" placeholder="日付で検索 例：2026-08"></div>
+      <div class="table-wrap"><table><thead><tr><th>日付</th><th>総差枚</th><th>平均</th><th>平均G</th><th>勝率</th></tr></thead><tbody id="dailyRows"></tbody></table></div>
+    </section>
+
+    <section id="machines" class="panel">
+      <div class="section-head"><div><p class="eyebrow">MACHINES</p><h2>機種別データ</h2></div></div>
+      <div class="controls"><input id="machineSearch" type="search" placeholder="機種名を検索"><select id="machineSort"><option value="count">台日数順</option><option value="avg">平均差枚順</option><option value="winRate">勝率順</option><option value="avgGames">平均G順</option></select></div>
+      <div class="table-wrap"><table><thead><tr><th>機種</th><th>台日数</th><th>平均差枚</th><th>平均G</th><th>勝率</th></tr></thead><tbody id="machineRows"></tbody></table></div>
+    </section>
+
+    <section id="numbers" class="panel">
+      <div class="section-head"><div><p class="eyebrow">MACHINE NUMBER</p><h2>台番号を追跡</h2></div></div>
+      <div class="controls"><input id="numberSearch" inputmode="numeric" placeholder="台番号 例：2052"><button id="numberButton">検索</button></div>
+      <div id="numberResult" class="empty">台番号を入力すると、日ごとの機種名と結果を表示します。</div>
+    </section>
+
+    <section id="changes" class="panel">
+      <div class="section-head"><div><p class="eyebrow">REPLACEMENTS</p><h2>機種入替履歴</h2></div></div>
+      <div class="controls"><input id="changeSearch" type="search" placeholder="台番号・機種名で検索"></div>
+      <div id="changeRows" class="change-list"></div>
+    </section>
+  </main>
+
+  <footer><p>DATA SOURCE: みんレポ</p><p>8/23は掲載データ欠損</p></footer>
+  <script src="./app.js" defer></script>
+</body>
+</html>

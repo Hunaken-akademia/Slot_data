@@ -2,6 +2,7 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const nf=new Intl.NumberFormat("ja-JP"), pct=v=>`${(v*100).toFixed(1)}%`, signed=v=>`${v>0?"+":""}${nf.format(Math.round(v))}`;
 const weekdays=["日","月","火","水","木","金","土"], norm=s=>String(s).normalize("NFKC").replace(/[\s　]+/g,"");
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const tokyoWeekday=()=>["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].indexOf(new Intl.DateTimeFormat("en-US",{weekday:"short",timeZone:"Asia/Tokyo"}).format(new Date()));
 let summary, allRows=[], selectedMachine="";
 
 async function init(){
@@ -15,7 +16,7 @@ async function init(){
 }
 
 function renderRecommendations(){
-  const wd=new Date().getDay(), rows=(summary.weekdayMachines?.[wd]||[]).slice(0,3);
+  const wd=tokyoWeekday(), rows=(summary.weekdayMachines?.[wd]||[]).slice(0,3);
   $("#todayTitle").textContent=`今日は${weekdays[wd]}曜日｜注目機種`;
   $("#recommendations").innerHTML=rows.length?rows.map((r,i)=>`<button class="recommend" data-machine="${encodeURIComponent(r.name)}"><span class="rank">${i+1}</span><small>${weekdays[wd]}曜実績 ${r.days}日・${r.count}台日</small><h3>${esc(r.name)}</h3><div><strong class="${r.avg>=0?"positive":"negative"}">${signed(r.avg)}</strong><span>平均差枚</span></div><p>勝率 ${pct(r.winRate)} / 平均 ${nf.format(Math.round(r.avgGames))}G</p></button>`).join(""):"<div class='empty'>十分なサンプルがありません。</div>";
   $$(".recommend").forEach(b=>b.onclick=()=>openMachine(decodeURIComponent(b.dataset.machine)));

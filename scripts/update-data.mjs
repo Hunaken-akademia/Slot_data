@@ -4,7 +4,7 @@ import { load } from "cheerio";
 import { selectedStore } from "./stores.mjs";
 
 const STORE = selectedStore();
-const START_DATE = "2026-01-01";
+const START_DATE = "2026-05-25";
 const TAG_URL = STORE.tagUrl;
 const DATA_DIR = STORE.absoluteDataDir;
 const REFRESH_DAYS = Number(process.env.REFRESH_DAYS || 7);
@@ -12,7 +12,14 @@ const MAX_REPORTS = Number(process.env.MAX_REPORTS || 0);
 const BACKFILL = process.env.BACKFILL !== "false";
 const USER_AGENT = "SlotDataArchive/1.0 (+https://github.com/Hunaken-akademia/Slot_data)";
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-const number = value => Number(String(value).replace(/[,+%\s]/g, ""));
+// The source shows "-" for 差枚/出率 when a machine's result isn't tallied yet (even with a G数 present).
+// Treat that as null ("no data") instead of NaN, so it never gets silently coerced to 0 downstream.
+const number = value => {
+  const raw = String(value).replace(/[,+%\s]/g, "");
+  if (raw === "" || raw === "-" || raw === "－" || raw === "−") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+};
 
 function jstToday() {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());

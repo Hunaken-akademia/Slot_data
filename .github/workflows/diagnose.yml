@@ -1,0 +1,21 @@
+name: Diagnose masking
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "min-repo.com report URL to check (e.g. https://min-repo.com/12345/?kishu=all)"
+        required: true
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --no-audit --no-fund
+      - run: node scripts/diagnose-masking.mjs
+        env:
+          DIAG_URL: ${{ github.event.inputs.url }}

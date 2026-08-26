@@ -67,10 +67,12 @@ function parseReport(html, date) {
   let rows = [];
   $("table").each((_, table) => {
     if (rows.length) return;
-    const headers = $(table).find("tr").first().find("th").map((__, th) => $(th).text().trim()).get();
+    let tableRows = $(table).children("tbody").children("tr");
+    if (!tableRows.length) tableRows = $(table).children("tr");
+    const headers = tableRows.first().children("th").map((__, th) => $(th).text().trim()).get();
     if (!["機種", "台番", "差枚", "G数", "出率"].every((header, i) => headers[i] === header)) return;
-    rows = $(table).find("tr").slice(1).map((__, tr) => {
-      const cells = $(tr).find("td").map((___, td) => $(td).text().trim()).get();
+    rows = tableRows.slice(1).map((__, tr) => {
+      const cells = $(tr).children("td").map((___, td) => $(td).text().trim()).get();
       if (!/^\d+$/.test(cells[1] || "")) return null;
       return [date, number(cells[1]), cells[0], number(cells[2]), number(cells[3]), number(cells[4])];
     }).get().filter(Boolean);
@@ -102,17 +104,22 @@ async function worker() {
     try {
       const url = new URL(baseUrl);
       url.searchParams.set("kishu", "all");
-      const rows = parseReport(await fetchText(url.href), date);
+      let rows,lastError;
+      for(let attempt=1;attempt<=3;attempt++){
+        try{rows=parseReport(await fetchText(url.href),date);break}
+        catch(error){lastError=error;if(attempt<3)await sleep(attempt*5000)}
+      }
+      if(!rows)throw lastError;
       updates.set(date, rows);
       console.log(`OK ${date} rows=${rows.length}`);
     } catch (error) {
       failures.push({ date, error: error.message });
       console.error(`ERROR ${date} ${error.message}`);
     }
-    await sleep(350);
+    await sleep(1200);
   }
 }
-await Promise.all([worker(), worker()]);
+await worker();
 
 const merged = existing.filter(row => !updates.has(row[0]));
 for (const rows of updates.values()) merged.push(...rows);

@@ -30,6 +30,9 @@
     </nav>
 
     <section id="overview" class="panel active">
+      <div class="section-head"><div><p class="eyebrow">TODAY'S PICK</p><h2 id="todayTitle">本日の注目機種</h2></div></div>
+      <div class="recommend-grid" id="recommendations"></div>
+      <p class="note">同じ曜日の過去実績を、平均差枚・勝率・稼働量・サンプル数で評価しています。</p>
       <div class="section-head"><div><p class="eyebrow">PATTERNS</p><h2>曜日・特定日の傾向</h2></div></div>
       <div class="pattern-grid" id="patterns"></div>
       <div class="chart-card">
@@ -46,7 +49,13 @@
     </section>
 
     <section id="machines" class="panel">
-      <div class="section-head"><div><p class="eyebrow">MACHINES</p><h2>機種別データ</h2></div></div>
+      <div class="section-head"><div><p class="eyebrow">MACHINE EXPLORER</p><h2>機種から台番号を選ぶ</h2></div></div>
+      <div class="machine-picker">
+        <label for="machinePicker">機種を選択</label>
+        <select id="machinePicker"><option value="">機種名を選んでください</option></select>
+      </div>
+      <div id="machineExplorer" class="empty">機種を選ぶと、設置されていた台番号と細かい傾向を表示します。</div>
+      <div class="section-head compact"><div><p class="eyebrow">ALL MACHINES</p><h2>機種別一覧</h2></div></div>
       <div class="controls"><input id="machineSearch" type="search" placeholder="機種名を検索"><select id="machineSort"><option value="count">台日数順</option><option value="avg">平均差枚順</option><option value="winRate">勝率順</option><option value="avgGames">平均G順</option></select></div>
       <div class="table-wrap"><table><thead><tr><th>機種</th><th>台日数</th><th>平均差枚</th><th>平均G</th><th>勝率</th></tr></thead><tbody id="machineRows"></tbody></table></div>
     </section>
@@ -64,7 +73,7 @@
     </section>
   </main>
 
-  <footer><p>DATA SOURCE: みんレポ</p><p>8/23は掲載データ欠損</p></footer>
+  <footer><p>DATA SOURCE: みんレポ</p><p>差枚実績からの傾向分析 / 8月23日欠損</p></footer>
   <script src="./app.js" defer></script>
 </body>
 </html>

@@ -50,7 +50,7 @@ jobs:
         env:
           STORE_SLUG: ${{ matrix.store }}
         run: |
-          if git diff --quiet -- public/data; then
+          if [ -z "$(git status --porcelain -- public/data)" ]; then
             echo "No data changes"
             exit 0
           fi

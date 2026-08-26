@@ -139,4 +139,6 @@ await fs.writeFile(path.join(DATA_DIR, "update-status.json"), JSON.stringify({
   attempted: targets.length, updatedDates: [...updates.keys()].sort(), failures
 }, null, 2));
 console.log(`updated_dates=${updates.size} total_rows=${merged.length} failures=${failures.length}`);
-if (targets.length && failures.length / targets.length > 0.1) process.exitCode = 1;
+// Keep successful dates even when the source starts throttling mid-run.
+// Missing dates remain eligible on the next scheduled/manual run.
+if (targets.length && updates.size === 0) process.exitCode = 1;

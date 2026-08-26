@@ -31,6 +31,10 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Collect missing and recent reports
         run: npm run update
+        env:
+          MAX_REPORTS: "40"
+        env:
+          MAX_REPORTS: "1"
       - name: Rebuild analytics
         run: npm run build:data
       - name: Validate generated data

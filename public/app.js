@@ -38,7 +38,10 @@ async function loadStore(slug){
 }
 
 function renderStoreTabs(){
-  $("#storeTabs").innerHTML=stores.map(s=>`<button class="store-tab ${s.slug===currentStore.slug?"active":""}" data-store="${s.slug}">${esc(s.shortName)}</button>`).join("");
+  const nav=$("#storeTabs");
+  if(stores.length<2){nav.style.display="none";nav.innerHTML="";return}
+  nav.style.display="";
+  nav.innerHTML=stores.map(s=>`<button class="store-tab ${s.slug===currentStore.slug?"active":""}" data-store="${s.slug}">${esc(s.shortName)}</button>`).join("");
   $$(".store-tab").forEach(b=>b.onclick=()=>{if(b.dataset.store===currentStore.slug)return;history.replaceState(null,"",`?store=${encodeURIComponent(b.dataset.store)}`);loadStore(b.dataset.store).catch(showLoadError)});
 }
 

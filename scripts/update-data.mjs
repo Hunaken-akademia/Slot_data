@@ -6,6 +6,7 @@ const START_DATE = "2026-01-01";
 const TAG_URL = "https://min-repo.com/tag/%E3%82%A8%E3%82%B9%E3%83%91%E3%82%B9%E6%97%A5%E6%8B%93%E8%B5%A4%E5%9D%82%E8%A6%8B%E9%99%84%E9%A7%85%E5%89%8D%E6%96%B0%E9%A4%A8/";
 const DATA_DIR = path.resolve("public/data");
 const REFRESH_DAYS = Number(process.env.REFRESH_DAYS || 7);
+const MAX_REPORTS = Number(process.env.MAX_REPORTS || 0);
 const BACKFILL = process.env.BACKFILL !== "false";
 const USER_AGENT = "SlotDataArchive/1.0 (+https://github.com/Hunaken-akademia/Slot_data)";
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -90,9 +91,10 @@ const existing = await loadExisting();
 const existingDates = new Set(existing.map(row => row[0]));
 const reports = discoverReports(await fetchText(TAG_URL), today);
 const refreshFrom = shiftDate(endDate, -(REFRESH_DAYS - 1));
-const targets = [...reports].filter(([date]) =>
+let targets = [...reports].filter(([date]) =>
   date >= START_DATE && date <= endDate && (BACKFILL ? !existingDates.has(date) || date >= refreshFrom : date >= refreshFrom)
 ).sort(([a], [b]) => a.localeCompare(b));
+if(MAX_REPORTS>0)targets=targets.slice(0,MAX_REPORTS);
 
 console.log(`reports=${reports.size} existing_dates=${existingDates.size} targets=${targets.length} range=${START_DATE}..${endDate}`);
 const updates = new Map();

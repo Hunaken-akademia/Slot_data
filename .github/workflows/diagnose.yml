@@ -1,6 +1,8 @@
 name: Diagnose masking
 
 on:
+  push:
+    branches: [claude/diagnose-masking-ip]
   workflow_dispatch:
     inputs:
       url:
@@ -18,4 +20,4 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: node scripts/diagnose-masking.mjs
         env:
-          DIAG_URL: ${{ github.event.inputs.url }}
+          DIAG_URL: ${{ github.event.inputs.url || 'https://min-repo.com/3296309/?kishu=all' }}

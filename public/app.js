@@ -30,7 +30,7 @@ async function loadStore(slug){
   $("#period").textContent=`${summary.period.from} — ${summary.period.to}｜毎日24時台更新`;
   $("#kpis").innerHTML=[
     ["取得日数",`${summary.days}日`,`最大${summary.machines}台/日`],["台別データ",nf.format(summary.rows),"日付×台番号"],
-    ["機種変更",`${summary.changes.length}件`,"日付ごとに照合"],["欠損",`${summary.missingDates.length}日`,summary.missingDates.at(-1)||"なし"]
+    ["機種変更",`${summary.changes.length}件`,"日付ごとに照合"],["欠損",`${summary.missingDates.length}日`,summary.unreliableDates?.length?`集計除外${summary.unreliableDates.length}日(未確定)`:summary.missingDates.at(-1)||"なし"]
   ].map(x=>`<article class="kpi"><span>${x[0]}</span><strong>${x[1]}</strong><small>${x[2]}</small></article>`).join("");
   $("#machineExplorer").className="empty";$("#machineExplorer").textContent="機種を選ぶと、設置されていた台番号と細かい傾向を表示します。";
   $("#numberResult").className="empty";$("#numberResult").textContent="台番号を入力すると、日ごとの機種名と結果を表示します。";
@@ -82,7 +82,7 @@ function setupSearch(){
   $("#changeSearch").oninput=e=>renderChanges(e.target.value.trim());
   $("#numberButton").onclick=loadNumber;$("#numberSearch").onkeydown=e=>{if(e.key==="Enter")loadNumber()};
 }
-async function ensureRows(){if(allRows.length)return;const chunks=await Promise.all(summary.months.map(m=>fetchJson(`${dataBase}/${m}.json`)));allRows=chunks.flat()}
+async function ensureRows(){if(allRows.length)return;const chunks=await Promise.all(summary.months.map(m=>fetchJson(`${dataBase}/${m}.json`)));const unreliable=new Set(summary.unreliableDates||[]);allRows=chunks.flat().filter(r=>!unreliable.has(r[0]))}
 
 async function openMachine(name,switchTab=true){
   selectedMachine=name;if(switchTab)activateTab("machines");$("#machinePicker").value=encodeURIComponent(name);

@@ -4,7 +4,7 @@ const weekdays=["日","月","火","水","木","金","土"], norm=s=>String(s).no
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const tokyoWeekday=()=>["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].indexOf(new Intl.DateTimeFormat("en-US",{weekday:"short",timeZone:"Asia/Tokyo"}).format(new Date()));
 const remoteRoot="https://raw.githubusercontent.com/Hunaken-akademia/Slot_data/main/public";
-async function fetchJson(file){try{const r=await fetch(`${remoteRoot}/${file}?v=${Date.now()}`,{cache:"no-store"});if(!r.ok)throw new Error(r.status);return await r.json()}catch(e){console.warn("remote data fallback",e);return fetch(`./${file}`).then(r=>r.json())}}
+async function fetchJson(file){const r=await fetch(`${remoteRoot}/${file}?v=${Date.now()}`,{cache:"no-store"});if(!r.ok)throw new Error(`Data request failed: ${r.status}`);return r.json()}
 let stores=[],currentStore,dataBase="data",summary,allRows=[],selectedMachine="",loadToken=0;
 
 async function init(){

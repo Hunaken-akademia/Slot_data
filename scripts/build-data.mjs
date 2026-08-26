@@ -11,12 +11,28 @@ for (const file of files) compact.push(...JSON.parse(await fs.readFile(path.join
 compact.sort((a,b)=>a[0].localeCompare(b[0])||a[1]-b[1]);
 if (!compact.length) throw new Error("No monthly data found");
 
+// The source (min-repo.com) sometimes withholds 差枚 for a machine that has actually
+// finished its session (masks it back to "-"/null instead of the real number). It does
+// this selectively for negative results only, so a date where every non-null diff is
+// >= 0 despite a healthy sample size is not "a lucky day with no losers" - it's almost
+// certainly still-masked data. Exclude such dates from every aggregate below so a masked
+// day never renders as if the parlor were purely non-negative that day; the raw rows stay
+// in the monthly files untouched, only the derived stats/frontend view drop them.
+const dateNonNull=new Map();
+for(const [date,,,diff] of compact){
+  if(diff==null)continue;
+  const s=dateNonNull.get(date)||{total:0,neg:0};s.total++;if(diff<0)s.neg++;dateNonNull.set(date,s);
+}
+const unreliableDates=new Set([...dateNonNull].filter(([,s])=>s.total>=STORE.minRows*0.3&&s.neg===0).map(([date])=>date));
+
 // diff/games can be null when the source hasn't tallied a machine's result yet (even with a G数 present).
 // Track raw row volume (rows/gcount) separately from diff-valid samples (count) so nulls never get
 // silently averaged in as 0.
 const dailyMap=new Map(),machineMap=new Map(),numberMap=new Map(),machineWeekdayMap=new Map();
 for(const r of compact){
   const [date,no,name,diff,games]=r;
+  if(!numberMap.has(no))numberMap.set(no,[]);numberMap.get(no).push(r);
+  if(unreliableDates.has(date))continue;
   const hasDiff=diff!=null,hasGames=games!=null;
   if(!dailyMap.has(date))dailyMap.set(date,{date,total:0,games:0,wins:0,count:0,rows:0,gcount:0});
   const d=dailyMap.get(date);d.rows++;if(hasDiff){d.total+=diff;d.wins+=diff>0?1:0;d.count++}if(hasGames){d.games+=games;d.gcount++}
@@ -26,7 +42,6 @@ for(const r of compact){
   const wd=new Date(`${date}T00:00:00Z`).getUTCDay(),wk=`${nk}|${wd}`;
   if(!machineWeekdayMap.has(wk))machineWeekdayMap.set(wk,{name,weekday:wd,days:new Set(),sum:0,games:0,wins:0,count:0,rows:0,gcount:0});
   const mw=machineWeekdayMap.get(wk);mw.days.add(date);mw.rows++;if(hasDiff){mw.sum+=diff;mw.wins+=diff>0?1:0;mw.count++}if(hasGames){mw.games+=games;mw.gcount++}
-  if(!numberMap.has(no))numberMap.set(no,[]);numberMap.get(no).push(r);
 }
 const daily=[...dailyMap.values()].sort((a,b)=>a.date.localeCompare(b.date)).map(d=>({...d,avg:d.count?d.total/d.count:0,avgGames:d.gcount?d.games/d.gcount:0,winRate:d.count?d.wins/d.count:0}));
 const machines=[...machineMap.values()].map(m=>({name:m.name,days:m.days.size,count:m.rows,total:m.sum,avg:m.count?m.sum/m.count:0,avgGames:m.gcount?m.games/m.gcount:0,wins:m.wins,winRate:m.count?m.wins/m.count:0})).sort((a,b)=>b.count-a.count);
@@ -51,12 +66,16 @@ for(let wd=0;wd<7;wd++)weekdayMachines[wd]=[...machineWeekdayMap.values()].filte
   return{name:m.name,days:m.days.size,count:m.count,avg,avgGames,winRate,score:avg*(.45+.55*reliability)+(winRate-.5)*700+Math.min(avgGames,6000)/40};
 }).sort((a,b)=>b.score-a.score).slice(0,5);
 
-const from=daily[0].date,to=daily.at(-1).date,missingDates=[];
-for(let date=from;date<=to;){if(!dailyMap.has(date))missingDates.push(date);const d=new Date(`${date}T00:00:00Z`);d.setUTCDate(d.getUTCDate()+1);date=d.toISOString().slice(0,10)}
-const maxMachines=Math.max(...daily.map(d=>d.rows));
+// The reliable window can legitimately be empty (a store whose every collected date is
+// still masked, per unreliableDates above) - guard the date-range math for that case
+// instead of throwing, so a fully-masked store still produces a usable (empty) summary.
+const from=daily[0]?.date??null,to=daily.at(-1)?.date??null,missingDates=[];
+if(from){for(let date=from;date<=to;){if(!dailyMap.has(date))missingDates.push(date);const d=new Date(`${date}T00:00:00Z`);d.setUTCDate(d.getUTCDate()+1);date=d.toISOString().slice(0,10)}}
+const maxMachines=daily.length?Math.max(...daily.map(d=>d.rows)):0;
+const unreliableList=[...unreliableDates].sort();
 await fs.writeFile(path.join(DATA_DIR,"summary.json"),JSON.stringify({
   slug:STORE.slug,store:STORE.name,shortName:STORE.shortName,period:{from,to},days:daily.length,rows:compact.length,machines:maxMachines,
-  missingDates,months:files.map(f=>f.slice(0,7)),daily,machineSummary:machines,weekdayMachines,patterns,changes,
+  missingDates,unreliableDates:unreliableList,months:files.map(f=>f.slice(0,7)),daily,machineSummary:machines,weekdayMachines,patterns,changes,
   generatedAt:new Date().toISOString()
 }));
-console.log(JSON.stringify({store:STORE.slug,period:{from,to},months:files.length,days:daily.length,rows:compact.length,machines:maxMachines,changes:changes.length,missingDates}));
+console.log(JSON.stringify({store:STORE.slug,period:{from,to},months:files.length,days:daily.length,rows:compact.length,machines:maxMachines,changes:changes.length,missingDates,unreliableDates:unreliableList}));

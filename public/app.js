@@ -3,14 +3,16 @@ const nf=new Intl.NumberFormat("ja-JP"), pct=v=>`${(v*100).toFixed(1)}%`, signed
 const weekdays=["日","月","火","水","木","金","土"], norm=s=>String(s).normalize("NFKC").replace(/[\s　]+/g,"");
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const tokyoWeekday=()=>["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].indexOf(new Intl.DateTimeFormat("en-US",{weekday:"short",timeZone:"Asia/Tokyo"}).format(new Date()));
+const remoteData="https://raw.githubusercontent.com/Hunaken-akademia/Slot_data/main/public/data";
+async function fetchJson(file){try{const r=await fetch(`${remoteData}/${file}?v=${Date.now()}`,{cache:"no-store"});if(!r.ok)throw new Error(r.status);return await r.json()}catch(e){console.warn("remote data fallback",e);return fetch(`./data/${file}`).then(r=>r.json())}}
 let summary, allRows=[], selectedMachine="";
 
 async function init(){
-  summary=await fetch("./data/summary.json").then(r=>r.json());
-  $("#period").textContent=`${summary.period.from} — ${summary.period.to}｜8/23 欠損`;
+  summary=await fetchJson("summary.json");
+  $("#period").textContent=`${summary.period.from} — ${summary.period.to}｜毎日24時台更新`;
   $("#kpis").innerHTML=[
-    ["取得日数",`${summary.days}日`,"全日301台"],["台別データ",nf.format(summary.rows),"日付×台番号"],
-    ["機種変更",`${summary.changes.length}件`,"日付ごとに照合"],["欠損",`${summary.missingDates.length}日`,"8月23日"]
+    ["取得日数",`${summary.days}日`,`最大${summary.machines}台/日`],["台別データ",nf.format(summary.rows),"日付×台番号"],
+    ["機種変更",`${summary.changes.length}件`,"日付ごとに照合"],["欠損",`${summary.missingDates.length}日`,summary.missingDates.at(-1)||"なし"]
   ].map(x=>`<article class="kpi"><span>${x[0]}</span><strong>${x[1]}</strong><small>${x[2]}</small></article>`).join("");
   renderRecommendations();renderPatterns();renderChart();renderDaily();renderMachines();renderChanges();setupMachinePicker();setupTabs();setupSearch();
 }
@@ -55,7 +57,7 @@ function setupSearch(){
   $("#changeSearch").oninput=e=>renderChanges(e.target.value.trim());
   $("#numberButton").onclick=loadNumber;$("#numberSearch").onkeydown=e=>{if(e.key==="Enter")loadNumber()};
 }
-async function ensureRows(){if(allRows.length)return;const chunks=await Promise.all(summary.months.map(m=>fetch(`./data/${m}.json`).then(r=>r.json())));allRows=chunks.flat()}
+async function ensureRows(){if(allRows.length)return;const chunks=await Promise.all(summary.months.map(m=>fetchJson(`${m}.json`)));allRows=chunks.flat()}
 
 async function openMachine(name,switchTab=true){
   selectedMachine=name;if(switchTab)activateTab("machines");$("#machinePicker").value=encodeURIComponent(name);
@@ -81,7 +83,7 @@ function renderMachineExplorer(name,rows){
   const avg=rows.reduce((s,r)=>s+r[3],0)/rows.length,win=rows.filter(r=>r[3]>0).length/rows.length,active=nums.filter(n=>n.last===summary.period.to).length;
   $("#machineExplorer").className="machine-explorer";
   $("#machineExplorer").innerHTML=`
-    <div class="explorer-head"><div><p class="eyebrow">SELECTED MACHINE</p><h3>${esc(name)}</h3><p>${nums.length}台番で記録 / 最終日稼働 ${active}台 / ${new Set(rows.map(r=>r[0])).size}日</p></div><div class="headline-stat"><span>3ヶ月平均</span><strong class="${avg>=0?"positive":"negative"}">${signed(avg)}</strong><small>勝率 ${pct(win)}</small></div></div>
+    <div class="explorer-head"><div><p class="eyebrow">SELECTED MACHINE</p><h3>${esc(name)}</h3><p>${nums.length}台番で記録 / 最終日稼働 ${active}台 / ${new Set(rows.map(r=>r[0])).size}日</p></div><div class="headline-stat"><span>期間平均</span><strong class="${avg>=0?"positive":"negative"}">${signed(avg)}</strong><small>勝率 ${pct(win)}</small></div></div>
     <div class="insight-grid">
       <article class="insight"><span>強い曜日候補</span><strong>${best?`${best.label}曜日`:"判定不可"}</strong><p>${best?`平均 ${signed(best.avg)}枚・勝率 ${pct(best.win)}・${best.days}日 / ${best.count}台日`:"サンプル不足"}</p></article>
       <article class="insight"><span>配置パターン候補</span><strong>${gaps[0]?gapLabel(gaps[0].gap):"明確な傾向なし"}</strong><p>${gaps[0]?`${gaps[0].dayCount}日・${gaps[0].pairs}組（例 ${gaps[0].examples.join("、")}）`:"条件を満たす組み合わせなし"}</p></article>

@@ -1,0 +1,13 @@
+{
+  "name": "akasaka-slot-data",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "update": "node scripts/update-data.mjs",
+    "build:data": "node scripts/build-data.mjs",
+    "validate": "node scripts/validate-data.mjs"
+  },
+  "dependencies": {
+    "cheerio": "1.0.0"
+  }
+}

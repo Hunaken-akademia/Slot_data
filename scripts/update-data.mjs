@@ -75,8 +75,9 @@ function parseReport(html, date) {
     rows = tableRows.slice(1).map((__, tr) => {
       const cells = $(tr).children("td").map((___, td) => $(td).text().trim()).get();
       if (!/^\d+$/.test(cells[1] || "")) return null;
-      return [date, number(cells[1]), cells[0], number(cells[2]), number(cells[3]), number(cells[4])];
-    }).get().filter(Boolean);
+      // Cheerio's map flattens returned arrays, so wrap each record first.
+      return { row: [date, number(cells[1]), cells[0], number(cells[2]), number(cells[3]), number(cells[4])] };
+    }).get().filter(Boolean).map(item => item.row);
   });
   const unique = new Set(rows.map(row => row[1]));
   if (rows.length < 250 || rows.length > 350 || unique.size !== rows.length) {

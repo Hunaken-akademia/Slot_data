@@ -1,10 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { load } from "cheerio";
+import { selectedStore } from "./stores.mjs";
 
+const STORE = selectedStore();
 const START_DATE = "2026-01-01";
-const TAG_URL = "https://min-repo.com/tag/%E3%82%A8%E3%82%B9%E3%83%91%E3%82%B9%E6%97%A5%E6%8B%93%E8%B5%A4%E5%9D%82%E8%A6%8B%E9%99%84%E9%A7%85%E5%89%8D%E6%96%B0%E9%A4%A8/";
-const DATA_DIR = path.resolve("public/data");
+const TAG_URL = STORE.tagUrl;
+const DATA_DIR = STORE.absoluteDataDir;
 const REFRESH_DAYS = Number(process.env.REFRESH_DAYS || 7);
 const MAX_REPORTS = Number(process.env.MAX_REPORTS || 0);
 const BACKFILL = process.env.BACKFILL !== "false";
@@ -80,7 +82,7 @@ function parseReport(html, date) {
     }).get().filter(Boolean).map(item => item.row);
   });
   const unique = new Set(rows.map(row => row[1]));
-  if (rows.length < 250 || rows.length > 350 || unique.size !== rows.length) {
+  if (rows.length < STORE.minRows || rows.length > STORE.maxRows || unique.size !== rows.length) {
     throw new Error(`${date}: invalid machine rows rows=${rows.length} unique=${unique.size}`);
   }
   return rows;
@@ -97,7 +99,7 @@ let targets = [...reports].filter(([date]) =>
 ).sort(([a], [b]) => a.localeCompare(b));
 if(MAX_REPORTS>0)targets=targets.slice(0,MAX_REPORTS);
 
-console.log(`reports=${reports.size} existing_dates=${existingDates.size} targets=${targets.length} range=${START_DATE}..${endDate}`);
+console.log(`store=${STORE.slug} reports=${reports.size} existing_dates=${existingDates.size} targets=${targets.length} range=${START_DATE}..${endDate}`);
 const updates = new Map();
 const failures = [];
 let cursor = 0;

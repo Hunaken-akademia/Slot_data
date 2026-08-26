@@ -1,7 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { selectedStore } from "./stores.mjs";
 
-const DATA_DIR = path.resolve("public/data");
+const STORE = selectedStore();
+const DATA_DIR = STORE.absoluteDataDir;
 const norm = s => String(s).normalize("NFKC").replace(/[\s　]+/g, "");
 const files = (await fs.readdir(DATA_DIR)).filter(name => /^\d{4}-\d{2}\.json$/.test(name)).sort();
 const compact = [];
@@ -49,8 +51,8 @@ const from=daily[0].date,to=daily.at(-1).date,missingDates=[];
 for(let date=from;date<=to;){if(!dailyMap.has(date))missingDates.push(date);const d=new Date(`${date}T00:00:00Z`);d.setUTCDate(d.getUTCDate()+1);date=d.toISOString().slice(0,10)}
 const maxMachines=Math.max(...daily.map(d=>d.count));
 await fs.writeFile(path.join(DATA_DIR,"summary.json"),JSON.stringify({
-  store:"エスパス日拓 赤坂見附駅前店",period:{from,to},days:daily.length,rows:compact.length,machines:maxMachines,
+  slug:STORE.slug,store:STORE.name,shortName:STORE.shortName,period:{from,to},days:daily.length,rows:compact.length,machines:maxMachines,
   missingDates,months:files.map(f=>f.slice(0,7)),daily,machineSummary:machines,weekdayMachines,patterns,changes,
   generatedAt:new Date().toISOString()
 }));
-console.log(JSON.stringify({period:{from,to},months:files.length,days:daily.length,rows:compact.length,machines:maxMachines,changes:changes.length,missingDates}));
+console.log(JSON.stringify({store:STORE.slug,period:{from,to},months:files.length,days:daily.length,rows:compact.length,machines:maxMachines,changes:changes.length,missingDates}));

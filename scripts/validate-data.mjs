@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-const dir=path.resolve("public/data");
+import { selectedStore } from "./stores.mjs";
+const store=selectedStore(),dir=store.absoluteDataDir;
 const files=(await fs.readdir(dir)).filter(name=>/^\d{4}-\d{2}\.json$/.test(name));
 const seen=new Set(),byDate=new Map();
 for(const file of files){
@@ -11,6 +12,6 @@ for(const file of files){
     byDate.set(row[0],(byDate.get(row[0])||0)+1);
   }
 }
-const abnormal=[...byDate].filter(([,count])=>count<250||count>350);
+const abnormal=[...byDate].filter(([,count])=>count<store.minRows||count>store.maxRows);
 if(abnormal.length)throw new Error(`Abnormal daily counts: ${JSON.stringify(abnormal)}`);
-console.log(JSON.stringify({files:files.length,days:byDate.size,rows:seen.size,min:Math.min(...byDate.values()),max:Math.max(...byDate.values())}));
+console.log(JSON.stringify({store:store.slug,files:files.length,days:byDate.size,rows:seen.size,min:Math.min(...byDate.values()),max:Math.max(...byDate.values())}));

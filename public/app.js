@@ -3,18 +3,38 @@ const nf=new Intl.NumberFormat("ja-JP"), pct=v=>`${(v*100).toFixed(1)}%`, signed
 const weekdays=["日","月","火","水","木","金","土"], norm=s=>String(s).normalize("NFKC").replace(/[\s　]+/g,"");
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const tokyoWeekday=()=>["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].indexOf(new Intl.DateTimeFormat("en-US",{weekday:"short",timeZone:"Asia/Tokyo"}).format(new Date()));
-const remoteData="https://raw.githubusercontent.com/Hunaken-akademia/Slot_data/main/public/data";
-async function fetchJson(file){try{const r=await fetch(`${remoteData}/${file}?v=${Date.now()}`,{cache:"no-store"});if(!r.ok)throw new Error(r.status);return await r.json()}catch(e){console.warn("remote data fallback",e);return fetch(`./data/${file}`).then(r=>r.json())}}
-let summary, allRows=[], selectedMachine="";
+const remoteRoot="https://raw.githubusercontent.com/Hunaken-akademia/Slot_data/main/public";
+async function fetchJson(file){try{const r=await fetch(`${remoteRoot}/${file}?v=${Date.now()}`,{cache:"no-store"});if(!r.ok)throw new Error(r.status);return await r.json()}catch(e){console.warn("remote data fallback",e);return fetch(`./${file}`).then(r=>r.json())}}
+let stores=[],currentStore,dataBase="data",summary,allRows=[],selectedMachine="",loadToken=0;
 
 async function init(){
-  summary=await fetchJson("summary.json");
+  stores=await fetchJson("data/stores.json");
+  setupTabs();setupSearch();
+  const requested=new URLSearchParams(location.search).get("store");
+  await loadStore(stores.some(s=>s.slug===requested)?requested:stores[0].slug);
+}
+
+async function loadStore(slug){
+  const token=++loadToken;
+  currentStore=stores.find(s=>s.slug===slug)||stores[0];dataBase=currentStore.publicPath;allRows=[];selectedMachine="";
+  renderStoreTabs();$("#period").textContent="読み込み中…";$("#kpis").innerHTML="";
+  summary=await fetchJson(`${dataBase}/summary.json`);if(token!==loadToken)return;
+  document.title=`SLOT DATA｜${currentStore.shortName}`;
+  $("#storeEyebrow").textContent=`SLOT DATA / ${currentStore.slug.toUpperCase()}`;
+  $("#storeTitle").innerHTML=`${esc(currentStore.shortName)}<br><span>2026年〜データ分析</span>`;
   $("#period").textContent=`${summary.period.from} — ${summary.period.to}｜毎日24時台更新`;
   $("#kpis").innerHTML=[
     ["取得日数",`${summary.days}日`,`最大${summary.machines}台/日`],["台別データ",nf.format(summary.rows),"日付×台番号"],
     ["機種変更",`${summary.changes.length}件`,"日付ごとに照合"],["欠損",`${summary.missingDates.length}日`,summary.missingDates.at(-1)||"なし"]
   ].map(x=>`<article class="kpi"><span>${x[0]}</span><strong>${x[1]}</strong><small>${x[2]}</small></article>`).join("");
-  renderRecommendations();renderPatterns();renderChart();renderDaily();renderMachines();renderChanges();setupMachinePicker();setupTabs();setupSearch();
+  $("#machineExplorer").className="empty";$("#machineExplorer").textContent="機種を選ぶと、設置されていた台番号と細かい傾向を表示します。";
+  $("#numberResult").className="empty";$("#numberResult").textContent="台番号を入力すると、日ごとの機種名と結果を表示します。";
+  renderRecommendations();renderPatterns();renderChart();renderDaily();renderMachines();renderChanges();setupMachinePicker();
+}
+
+function renderStoreTabs(){
+  $("#storeTabs").innerHTML=stores.map(s=>`<button class="store-tab ${s.slug===currentStore.slug?"active":""}" data-store="${s.slug}">${esc(s.shortName)}</button>`).join("");
+  $$(".store-tab").forEach(b=>b.onclick=()=>{if(b.dataset.store===currentStore.slug)return;history.replaceState(null,"",`?store=${encodeURIComponent(b.dataset.store)}`);loadStore(b.dataset.store).catch(showLoadError)});
 }
 
 function renderRecommendations(){
@@ -57,7 +77,7 @@ function setupSearch(){
   $("#changeSearch").oninput=e=>renderChanges(e.target.value.trim());
   $("#numberButton").onclick=loadNumber;$("#numberSearch").onkeydown=e=>{if(e.key==="Enter")loadNumber()};
 }
-async function ensureRows(){if(allRows.length)return;const chunks=await Promise.all(summary.months.map(m=>fetchJson(`${m}.json`)));allRows=chunks.flat()}
+async function ensureRows(){if(allRows.length)return;const chunks=await Promise.all(summary.months.map(m=>fetchJson(`${dataBase}/${m}.json`)));allRows=chunks.flat()}
 
 async function openMachine(name,switchTab=true){
   selectedMachine=name;if(switchTab)activateTab("machines");$("#machinePicker").value=encodeURIComponent(name);
@@ -109,4 +129,5 @@ async function loadNumber(){
   const avg=rows.reduce((s,r)=>s+r[3],0)/rows.length,win=rows.filter(r=>r[3]>0).length/rows.length;
   $("#numberResult").className="number-card";$("#numberResult").innerHTML=`<h3>${no}番台</h3><div class="number-stats"><span>平均差枚<strong class="${avg>=0?"positive":"negative"}">${signed(avg)}</strong></span><span>勝率<strong>${pct(win)}</strong></span><span>記録<strong>${rows.length}日</strong></span></div><div class="table-wrap"><table><thead><tr><th>日付</th><th>機種</th><th>差枚</th><th>G数</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r[0]}</td><td class="machine">${esc(r[2])}</td><td class="${r[3]>=0?"positive":"negative"}">${signed(r[3])}</td><td>${nf.format(r[4])}</td></tr>`).join("")}</tbody></table></div>`;
 }
-init().catch(e=>{$("main").innerHTML=`<div class="empty">データを読み込めませんでした。再読み込みしてください。</div>`;console.error(e)});
+function showLoadError(e){$("#period").textContent="データを読み込めませんでした";console.error(e)}
+init().catch(showLoadError);

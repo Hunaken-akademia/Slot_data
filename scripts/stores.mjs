@@ -30,6 +30,16 @@ export const STORES = {
     publicPath: "data/stores/inage",
     minRows: 150,
     maxRows: 260
+  },
+  "yasuda-shimizucho": {
+    slug: "yasuda-shimizucho",
+    name: "やすだ清水町店",
+    shortName: "やすだ清水町",
+    tagUrl: "https://min-repo.com/tag/%e3%82%84%e3%81%99%e3%81%a0%e6%b8%85%e6%b0%b4%e7%94%ba%e5%ba%97/",
+    dataDir: "public/data/stores/yasuda-shimizucho",
+    publicPath: "data/stores/yasuda-shimizucho",
+    minRows: 100,
+    maxRows: 150
   }
 };
 

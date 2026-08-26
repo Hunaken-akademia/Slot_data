@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        store: [akasaka, mitoya-suidobashi, inage]
+        store: [akasaka, mitoya-suidobashi, inage, yasuda-shimizucho]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

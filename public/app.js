@@ -27,7 +27,7 @@ async function loadStore(slug){
   document.title=`SLOT DATA｜${currentStore.shortName}`;
   $("#storeEyebrow").textContent=`SLOT DATA / ${currentStore.slug.toUpperCase()}`;
   $("#storeTitle").innerHTML=`${esc(currentStore.shortName)}<br><span>2026年〜データ分析</span>`;
-  $("#period").textContent=`${summary.period.from} — ${summary.period.to}｜毎日24時台更新`;
+  $("#period").textContent=summary.period.from?`${summary.period.from} — ${summary.period.to}｜毎日24時台更新`:"データ収集中｜マイナス差枚を確認でき次第、表示期間が始まります";
   $("#kpis").innerHTML=[
     ["取得日数",`${summary.days}日`,`最大${summary.machines}台/日`],["台別データ",nf.format(summary.rows),"日付×台番号"],
     ["機種変更",`${summary.changes.length}件`,"日付ごとに照合"],["欠損",`${summary.missingDates.length}日`,summary.unreliableDates?.length?`集計除外${summary.unreliableDates.length}日(未確定)`:summary.missingDates.at(-1)||"なし"]
@@ -59,7 +59,9 @@ function renderPatterns(){
 }
 
 function renderChart(){
-  const data=summary.daily,w=1000,h=230,p=12,max=Math.max(...data.map(d=>Math.abs(d.total)))*1.08;
+  const data=summary.daily;
+  if(!data.length){$("#dailyChart").innerHTML="<div class='empty'>まだ表示できるデータがありません。</div>";return}
+  const w=1000,h=230,p=12,max=Math.max(...data.map(d=>Math.abs(d.total)))*1.08;
   const x=i=>p+i*(w-p*2)/(data.length-1),y=v=>h/2-v*(h/2-p)/max;
   const line=data.map((d,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${y(d.total).toFixed(1)}`).join(" "),area=`${line} L${x(data.length-1)},${h/2} L${x(0)},${h/2} Z`;
   $("#dailyChart").innerHTML=`<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><defs><linearGradient id="fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#47e6c1" stop-opacity=".38"/><stop offset="1" stop-color="#47e6c1" stop-opacity="0"/></linearGradient></defs><line class="zero" x1="0" y1="${h/2}" x2="${w}" y2="${h/2}"/><path class="area" d="${area}"/><path class="line" d="${line}"/>${data.map((d,i)=>`<circle cx="${x(i)}" cy="${y(d.total)}" r="5" data-date="${d.date}" data-value="${d.total}"/>`).join("")}</svg>`;

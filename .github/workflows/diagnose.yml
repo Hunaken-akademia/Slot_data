@@ -20,4 +20,4 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: node scripts/diagnose-masking.mjs
         env:
-          DIAG_URL: ${{ github.event.inputs.url || 'https://min-repo.com/3295304/?kishu=all' }}
+          DIAG_URL: ${{ github.event.inputs.url || 'https://min-repo.com/3311504/?kishu=%E3%82%B9%E3%83%9E%E3%82%B9%E3%83%AD+%E7%94%B2%E9%89%84%E5%9F%8E%E3%81%AE%E3%82%AB%E3%83%90%E3%83%8D%E3%83%AA+%E6%B5%B7%E9%96%80%E6%B1%BA%E6%88%A6' }}

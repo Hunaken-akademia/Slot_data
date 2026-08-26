@@ -1,5 +1,12 @@
 import { load } from "cheerio";
 
+try {
+  const ipInfo = await (await fetch("https://ipinfo.io/json")).json();
+  console.log(`egressIp=${JSON.stringify(ipInfo)}`);
+} catch (e) {
+  console.log(`ipInfoError=${e.message}`);
+}
+
 const url = process.env.DIAG_URL;
 if (!url) throw new Error("DIAG_URL env var required");
 const USER_AGENT = "SlotDataArchive/1.0 (+https://github.com/Hunaken-akademia/Slot_data)";

@@ -40,10 +40,18 @@ for(const r of compact){
   if(!machineMap.has(nk))machineMap.set(nk,{name,days:new Set(),sum:0,games:0,wins:0,count:0,rows:0,gcount:0});
   const m=machineMap.get(nk);m.days.add(date);m.rows++;if(hasDiff){m.sum+=diff;m.wins+=diff>0?1:0;m.count++}if(hasGames){m.games+=games;m.gcount++}
   const wd=new Date(`${date}T00:00:00Z`).getUTCDay(),wk=`${nk}|${wd}`;
-  if(!machineWeekdayMap.has(wk))machineWeekdayMap.set(wk,{name,weekday:wd,days:new Set(),sum:0,games:0,wins:0,count:0,rows:0,gcount:0});
+  if(!machineWeekdayMap.has(wk))machineWeekdayMap.set(wk,{name,nk,weekday:wd,days:new Set(),sum:0,games:0,wins:0,count:0,rows:0,gcount:0});
   const mw=machineWeekdayMap.get(wk);mw.days.add(date);mw.rows++;if(hasDiff){mw.sum+=diff;mw.wins+=diff>0?1:0;mw.count++}if(hasGames){mw.games+=games;mw.gcount++}
 }
 const daily=[...dailyMap.values()].sort((a,b)=>a.date.localeCompare(b.date)).map(d=>({...d,avg:d.count?d.total/d.count:0,avgGames:d.gcount?d.games/d.gcount:0,winRate:d.count?d.wins/d.count:0}));
+// The reliable window can legitimately be empty (a store whose every collected date is
+// still masked, per unreliableDates above) - guard the date-range math for that case
+// instead of throwing, so a fully-masked store still produces a usable (empty) summary.
+const from=daily[0]?.date??null,to=daily.at(-1)?.date??null;
+// A machine only counts as a "注目機種" candidate if it was actually on the floor on the
+// most recent reliable day - a machine that was swapped out shouldn't keep recommending
+// itself just because it used to perform well.
+const activeNames=new Set(to?compact.filter(r=>r[0]===to).map(r=>norm(r[2])):[]);
 const machines=[...machineMap.values()].map(m=>({name:m.name,days:m.days.size,count:m.rows,total:m.sum,avg:m.count?m.sum/m.count:0,avgGames:m.gcount?m.games/m.gcount:0,wins:m.wins,winRate:m.count?m.wins/m.count:0})).sort((a,b)=>b.count-a.count);
 const changes=[];
 for(const [no,list0] of numberMap){
@@ -61,15 +69,12 @@ for(const d of daily){
 }
 const patterns=[...groups.values()].map(g=>({...g,avg:g.total/g.days,positiveRate:g.positive/g.days}));
 const weekdayMachines={};
-for(let wd=0;wd<7;wd++)weekdayMachines[wd]=[...machineWeekdayMap.values()].filter(m=>m.weekday===wd&&m.days.size>=4&&m.count>=8&&m.gcount&&m.games/m.gcount>=1500).map(m=>{
+for(let wd=0;wd<7;wd++)weekdayMachines[wd]=[...machineWeekdayMap.values()].filter(m=>m.weekday===wd&&m.days.size>=4&&m.count>=8&&m.gcount&&m.games/m.gcount>=1500&&activeNames.has(m.nk)).map(m=>{
   const avg=m.sum/m.count,winRate=m.wins/m.count,avgGames=m.games/m.gcount,reliability=Math.min(1,m.count/40);
   return{name:m.name,days:m.days.size,count:m.count,avg,avgGames,winRate,score:avg*(.45+.55*reliability)+(winRate-.5)*700+Math.min(avgGames,6000)/40};
 }).sort((a,b)=>b.score-a.score).slice(0,5);
 
-// The reliable window can legitimately be empty (a store whose every collected date is
-// still masked, per unreliableDates above) - guard the date-range math for that case
-// instead of throwing, so a fully-masked store still produces a usable (empty) summary.
-const from=daily[0]?.date??null,to=daily.at(-1)?.date??null,missingDates=[];
+const missingDates=[];
 if(from){for(let date=from;date<=to;){if(!dailyMap.has(date))missingDates.push(date);const d=new Date(`${date}T00:00:00Z`);d.setUTCDate(d.getUTCDate()+1);date=d.toISOString().slice(0,10)}}
 const maxMachines=daily.length?Math.max(...daily.map(d=>d.rows)):0;
 const unreliableList=[...unreliableDates].sort();

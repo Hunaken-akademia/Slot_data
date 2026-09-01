@@ -1,10 +1,9 @@
 {
-  "updatedAt": "2026-08-31T20:46:34.317Z",
-  "jstTargetThrough": "2026-08-31",
+  "updatedAt": "2026-09-01T18:23:42.243Z",
+  "jstTargetThrough": "2026-09-01",
   "discoveredReports": 243,
-  "attempted": 7,
+  "attempted": 6,
   "updatedDates": [
-    "2026-08-25",
     "2026-08-26",
     "2026-08-27",
     "2026-08-28",
